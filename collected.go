@@ -15,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-// Transaction содержит информацию о транзакции
+// информация о транзакции
 type Transaction struct {
 	Hash     string   `json:"hash"`
 	ChainId  *big.Int `json:"chain_id"`
@@ -25,7 +25,7 @@ type Transaction struct {
 	GasPrice *big.Int `json:"gas_price"`
 }
 
-// BlockInfo содержит информацию о блоке и его транзакциях
+// информация о блоке и его транзакциях
 type BlockInfo struct {
 	BlockNumber      uint64        `json:"block_number"`
 	BlockTime        uint64        `json:"block_time"`
@@ -33,12 +33,12 @@ type BlockInfo struct {
 	BlockHash        string        `json:"block_hash"`
 	TransactionCount int           `json:"transaction_count"`
 	Transactions     []Transaction `json:"transactions"`
-	Error            error         `json:"-"` // Поле ошибки (не включается в JSON)
+	Error            error         `json:"-"` 
 }
 
 var lastBlockHash string
 
-// GetLatestBlockInfo получает информацию о последнем блоке и его транзакциях
+//  информация о последнем блоке и его транзакциях
 func GetLatestBlockInfo(clientURL string) BlockInfo {
 	client, err := ethclient.Dial(clientURL)
 	if err != nil {
@@ -83,7 +83,7 @@ func GetLatestBlockInfo(clientURL string) BlockInfo {
 	}
 }
 
-// uploadData добавляет данные о блоке и его транзакциях в Firebase
+// с бд
 func uploadData(block BlockInfo, firebaseURL string) error {
 	blockJson, err := json.Marshal(block)
 	if err != nil {
@@ -111,43 +111,3 @@ func uploadData(block BlockInfo, firebaseURL string) error {
 	return nil
 }
 
-func main() {
-
-	ETHclientURL := "<mainnet.infura.io/ key >"
-
-	firebaseURL := "<firebase proj link/.json>"
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	log.Println("Приложение запущено. Данные отправляются каждые 5 секунд...")
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("Остановка приложения.")
-			return
-		case <-ticker.C:
-			blockInfo := GetLatestBlockInfo(ETHclientURL)
-
-			if blockInfo.Error != nil {
-				log.Printf("Ошибка: %v\n", blockInfo.Error)
-				continue
-			}
-
-			if blockInfo.BlockHash == lastBlockHash {
-				log.Printf("Блок с хешем %s уже был отправлен. Пропускаем отправку.\n", blockInfo.BlockHash)
-				continue
-			}
-
-			err := uploadData(blockInfo, firebaseURL)
-			if err != nil {
-				log.Printf("Ошибка загрузки данных: %v\n", err)
-			} else {
-				log.Printf("Данные успешно отправлены: %+v\n", blockInfo)
-			}
-		}
-	}
-}
